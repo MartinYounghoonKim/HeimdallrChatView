@@ -44,7 +44,7 @@
 
     <br>
 
-    <b-form-input id="input1" v-model="message" placeholder="Chat Message Here : Enter" @keyup.enter.native="submit"></b-form-input>
+    <b-form-input id="input1" v-model="liveMessage" placeholder="Chat Message Here : Enter" @keyup.enter.native="submit"></b-form-input>
   </div>
 </template>
 
@@ -64,36 +64,41 @@ export default {
       var scrollHeight = container.scrollHeight
       container.scrollTop = scrollHeight
     },
+
+    makeMessageFormat (type, text) {
+      this.messageJson = {
+        msgType: type,
+        text: text,
+        userId: this.nickname,
+        date: new Date().toLocaleTimeString()
+      }
+      return this.messageJson
+    },
+
     join () {
       if (this.WS) {
         alert('Already connection opened')
         return
       }
 
+      /* create socket */
       this.WS = new WebSocket('ws://' + this.server + '/' + this.roomNumber)
       this.WS.onopen = () => {
-        var msg = { msgType: 'system', text: 'join', userId: this.nickname, date: Date.now() }
+        var msg = this.makeMessageFormat('system', 'join')
         this.WS.send(JSON.stringify(msg))
       }
 
+      /* onmessage event */
       this.WS.onmessage = (event) => {
         var msg = JSON.parse(event.data)
-        var time = new Date(msg.date)
-        this.chatHistory.push(`[ ${time.toLocaleTimeString()} ]( ${msg.userId} ) ${msg.text}\n`)
+        this.chatHistory.push(`[ ${msg.date} ]( ${msg.userId} ) ${msg.text}\n`)
       }
     },
 
     leave () {
       if (this.WS) {
-        var msg = {
-          msgType: 'system',
-          userId: this.nickname,
-          date: Date.now(),
-          text: 'leave'
-        }
-
-        var time = new Date(msg.date)
-        this.chatHistory.push(`[ ${time.toLocaleTimeString()} ]( ${this.nickname} ) ${msg.text}\n`)
+        var msg = this.makeMessageFormat('system', 'leave')
+        this.chatHistory.push(`[ ${msg.date} ]( ${this.nickname} ) ${msg.text}\n`)
 
         this.WS.send(JSON.stringify(msg))
         this.WS.close()
@@ -105,9 +110,14 @@ export default {
 
     submit (event) {
       if (event.which === 13) {
-        var msg = { msgType: 'user', text: this.message, userId: this.nickname, date: Date.now() }
-        this.message = ''
-        this.WS.send(JSON.stringify(msg))
+        if (!this.WS) {
+          this.liveMessage = ''
+          alert('You must first connect to the room.')
+        } else {
+          var msg = this.makeMessageFormat('user', this.liveMessage)
+          this.liveMessage = ''
+          this.WS.send(JSON.stringify(msg))
+        }
       }
     }
   },
@@ -118,8 +128,17 @@ export default {
       server: '127.0.0.1:8000',
       roomNumber: '1212',
       nickname: 'caleybot',
-      message: '',
-      chatHistory: ['[ 오후 9:15:23 ]( caleybot ) this is a sample text#1', '[ 오후 9:15:23 ]( caleybot ) this is a sample text#2'],
+      messageJson: {
+        msgType: '',
+        text: '',
+        userId: '',
+        date: ''
+      },
+      liveMessage: '',
+      chatHistory: [
+        '[ 오후 9:15:23 ]( caleybot ) this is a sample text#1',
+        '[ 오후 9:15:23 ]( caleybot ) this is a sample text#2'
+      ],
       greet: 'Welcome to Heimdallr chat App'
     }
   }
