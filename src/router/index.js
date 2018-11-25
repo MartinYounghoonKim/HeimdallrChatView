@@ -1,6 +1,6 @@
 import Vue from 'vue'
 import Router from 'vue-router'
-import HeimdallrChat from '@/components/HeimdallrChat'
+import HeimdallrChat from '@/pages/HeimdallrChat'
 
 Vue.use(Router)
 
